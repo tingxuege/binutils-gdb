@@ -66,7 +66,7 @@ struct gdb_bfd_data
       needs_relocations (0),
       crc_computed (0)
   {
-    struct stat buf;
+    sys_stat buf;
 
     if (bfd_stat (abfd, &buf) == 0)
       {
@@ -360,18 +360,22 @@ gdb_bfd_iovec_fileio_close (struct bfd *abfd, void *stream)
 
 static int
 gdb_bfd_iovec_fileio_fstat (struct bfd *abfd, void *stream,
-			    struct stat *sb)
+			    sys_stat *sb)
 {
   int fd = *(int *) stream;
   int target_errno;
   int result;
 
-  result = target_fileio_fstat (fd, sb, &target_errno);
+  struct stat st;
+
+  result = target_fileio_fstat (fd, &st, &target_errno);
   if (result == -1)
     {
       errno = fileio_errno_to_host (target_errno);
       bfd_set_error (bfd_error_system_call);
     }
+
+  // XXX map here.
 
   return result;
 }
@@ -818,7 +822,7 @@ gdb_bfd_openr_iovec (const char *filename, const char *target,
 					void *stream),
 		     int (*stat_func) (struct bfd *abfd,
 				       void *stream,
-				       struct stat *sb))
+				       sys_stat *sb))
 {
   bfd *result = bfd_openr_iovec (filename, target,
 				 open_func, open_closure,
